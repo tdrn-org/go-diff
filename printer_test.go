@@ -54,7 +54,16 @@ func testPlainPrinter(w io.Writer) (*diff.Printer, string) {
 }
 
 func testAnsiPrinter(w io.Writer) (*diff.Printer, string) {
-	printer := diff.NewPrinter(w, diff.WithAnsi(true))
-	expected := "\x1b[31m> removed line\n\x1b[0m\x1b[37m= unchanged line\n\x1b[0m\x1b[32m< added line\n\x1b[0m"
+	ansiRst := "\x1b[0m"
+	colors := &diff.Colors{
+		Eql: ansiRst,
+		Add: ansiRst,
+		Del: ansiRst,
+		Hdr: ansiRst,
+		Lbl: ansiRst,
+		Rst: ansiRst,
+	}
+	printer := diff.NewPrinter(w, diff.WithAnsi(true), diff.WithColors(colors))
+	expected := "\x1b[0m> removed line\n\x1b[0m\x1b[0m= unchanged line\n\x1b[0m\x1b[0m< added line\n\x1b[0m"
 	return printer, expected
 }

@@ -18,39 +18,47 @@ import (
 type Printer struct {
 	w         io.Writer
 	ansi      bool
-	ansiEql   string
-	ansiAdd   string
-	ansiDel   string
-	ansiRst   string
+	colors    *Colors
 	formatter Formatter
 }
-
-const ansiEql = "\x1b[37m"
-const ansiAdd = "\x1b[32m"
-const ansiDel = "\x1b[31m"
-const ansiRst = "\x1b[0m"
 
 // Write as defined by [io.Writer]
 func (p *Printer) Write(b []byte) (int, error) {
 	return p.w.Write(b)
 }
 
-// OpAnsi returns the ansi color sequence configured for the given diff operation.
+// Ansi determines whether Ansi coloring is enabled for this Printer instance.
+func (p *Printer) Ansi() bool {
+	return p.ansi
+}
+
+// Colors returns the Colors configured for this Printer instance.
+//
+// If coloring is disabled, an empty color table is returned.
+func (p *Printer) Colors() *Colors {
+	if !p.ansi {
+		return noColors
+	}
+	if p.colors == nil {
+		return defaultColors
+	}
+	return p.colors
+}
+
+// OpColor returns the ansi color sequence configured for the given diff operation.
 //
 // Beside the color sequence, also the reset sequence is returned to reset coloring
 // after all outputs have been printed. If coloring is disabled, both sequences
 // are empty.
-func (p *Printer) OpAnsi(op Op) (string, string) {
-	if !p.ansi {
-		return "", ""
-	}
+func (p *Printer) OpColor(op Op) (string, string) {
+	colors := p.Colors()
 	switch op {
 	case EqlOp:
-		return p.ansiEql, p.ansiRst
+		return colors.Eql, colors.Rst
 	case AddOp:
-		return p.ansiAdd, p.ansiRst
+		return colors.Add, colors.Rst
 	case DelOp:
-		return p.ansiDel, p.ansiRst
+		return colors.Del, colors.Rst
 	}
 	return "", ""
 }
@@ -63,8 +71,8 @@ func (p *Printer) Print(r *Result) {
 func (p *Printer) defaultPrint(r *Result) {
 	if p.ansi {
 		for _, diff := range r.Diffs {
-			esc, rst := p.OpAnsi(diff.Op)
-			fmt.Fprintf(p.w, "%s%s %s%s", esc, diff.Op, diff.Line, rst)
+			set, rst := p.OpColor(diff.Op)
+			fmt.Fprintf(p.w, "%s%s %s%s", set, diff.Op, diff.Line, rst)
 		}
 	} else {
 		for _, diff := range r.Diffs {
@@ -120,12 +128,17 @@ func WithAnsi(ansi bool) PrinterOption {
 // the diff result.
 //
 // If coloring is disabled, these sequences are not used.
-func WithColors(eql string, add string, del string, rst string) PrinterOption {
+func WithColors(colors *Colors) PrinterOption {
 	return PrinterOptionFunc(func(p *Printer) {
-		p.ansiEql = eql
-		p.ansiAdd = add
-		p.ansiDel = del
-		p.ansiRst = rst
+		p.colors = colors
+	})
+}
+
+// WithFormatter sets a custom Formatter for formatting
+// the diff result.
+func WithFormatter(formatter Formatter) PrinterOption {
+	return PrinterOptionFunc(func(p *Printer) {
+		p.formatter = formatter
 	})
 }
 
@@ -135,12 +148,8 @@ func NewPrinter(w io.Writer, opts ...PrinterOption) *Printer {
 	file, ok := w.(*os.File)
 	ansi := ok && (isatty.IsTerminal(file.Fd()) || isatty.IsCygwinTerminal(file.Fd()))
 	printer := &Printer{
-		w:       w,
-		ansi:    ansi,
-		ansiEql: ansiEql,
-		ansiAdd: ansiAdd,
-		ansiDel: ansiDel,
-		ansiRst: ansiRst,
+		w:    w,
+		ansi: ansi,
 		formatter: FormatterFunc(func(p *Printer, r *Result) {
 			p.defaultPrint(r)
 		}),
