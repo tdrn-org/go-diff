@@ -159,9 +159,29 @@ func (f *unifiedFormatter) formatRange(p *Printer, startLeft int, extentLeft int
 
 func (f *unifiedFormatter) formatDiff(p *Printer, diff LineDiff) {
 	if p.Ansi() {
-		set, rst := p.OpColor(diff.Op)
-		fmt.Fprintf(p.w, "%s%s %s%s", set, diff.Op, diff.Line, rst)
+		colors := p.Colors()
+		var op string
+		var set string
+		var rst string
+		switch diff.Op {
+		case EqlOp:
+			op, set, rst = " ", colors.Eql, colors.Rst
+		case AddOp:
+			op, set, rst = "+", colors.Add, colors.Rst
+		case DelOp:
+			op, set, rst = "-", colors.Del, colors.Rst
+		}
+		fmt.Fprintf(p.w, "%s%s%s%s", set, op, diff.Line, rst)
 	} else {
-		fmt.Fprintf(p.w, "%s %s", diff.Op, diff.Line)
+		var op string
+		switch diff.Op {
+		case EqlOp:
+			op = " "
+		case AddOp:
+			op = "+"
+		case DelOp:
+			op = "-"
+		}
+		fmt.Fprintf(p.w, "%s%s", op, diff.Line)
 	}
 }
