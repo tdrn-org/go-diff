@@ -12,8 +12,10 @@ import (
 	"time"
 )
 
+// DefaultUnifiedContext defines the default context size (3) for unified diff output.
 const DefaultUnifiedContext int = 3
 
+// WithUnifiedFormatter wraps WithFormatter to format the ouput in unified diff format.
 func WithUnifiedFormatter(context int) PrinterOption {
 	checkedContext := context
 	if checkedContext < 0 {
