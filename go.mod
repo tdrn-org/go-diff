@@ -1,10 +1,10 @@
 module github.com/tdrn-org/go-diff
 
-go 1.25
+go 1.26
 
 require github.com/stretchr/testify v1.11.1
 
-require golang.org/x/sys v0.6.0 // indirect
+require golang.org/x/sys v0.41.0 // indirect
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
